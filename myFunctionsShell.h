@@ -30,6 +30,7 @@ char *getInputFromUser();
  */
 char **splitArguments(char *);
 void getLocation();
+int isExitCommand(const char *input);
 void logout(char *input);
 void echo(char **arguments);
 void cd(char **);
