@@ -100,13 +100,40 @@ void getLocation()
     fflush(stdout);
 }
 
+int isExitCommand(const char *input) 
+{
+    // Skip leading spaces
+    while (isspace((unsigned char)*input)) {
+        input++;
+    }
+
+    // Define the "exit" command string
+    const char *exitStr = "exit";
+    size_t len = strlen(exitStr);
+
+    // Check if the input starts with "exit"
+    if (strncmp(input, exitStr, len) != 0) {
+        return 0;
+    }
+
+    // Check if the next character is a space or end of string (valid "exit" command)
+    char c = input[len];
+    if (c == '\0' || isspace((unsigned char)c)) {
+        return 1;
+    }
+
+    return 0;
+}
+
 void logout(char *input)
 {
-
     free(input);
-    puts("logout");
+    puts("Exiting shell... Goodbye!");
     exit(EXIT_SUCCESS);
 }
+
+
+
 
 void systemCall(char **arguments)
 {
@@ -127,7 +154,6 @@ void systemCall(char **arguments)
         }
     }
 }
-
 void mypipe(char **argv1, char **argv2)
 {
 
@@ -153,13 +179,11 @@ void mypipe(char **argv1, char **argv2)
         execvp(argv2[0], argv2);
     }
 }
-
 void move(char **args) {}
 void echoppend(char **args) {}
 void echowrite(char **args) {}
 void _read(char **args) {}
 void wordCount(char **args) {}
-
 void echo(char **arguments)
 {
     while (*(++arguments))
