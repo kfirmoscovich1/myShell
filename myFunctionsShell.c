@@ -9,6 +9,7 @@
 #include <dirent.h>  
 #include <fcntl.h>  
 #include <sys/stat.h> 
+#include <errno.h>
 
 
 char *getInputFromUser()
@@ -132,6 +133,88 @@ void logout(char *input)
     exit(EXIT_SUCCESS);
 }
 
+void cd(char **args) 
+{
+    int num = 0;
+    
+    // Check if no directory is provided
+    if (!args[1]) {
+        fprintf(stderr, "cd: missing directory\n");
+        return; 
+    }
+
+    // Allocate memory for the path (max length 1023)
+    char *path = malloc(1023 * sizeof(char)); 
+    path[0] = '\0';
+
+    // Generate the full path from all arguments
+    while (args[num] != NULL) {
+        // Skip the "cd" command itself
+        if (num > 0) {
+
+            // Add a space between arguments
+            if (strlen(path) > 1) strcat(path, " ");
+            strcat(path, args[num]); 
+        } 
+        num++; 
+    }
+
+    // Remove surrounding quotes if they exist
+    int len = strlen(path);
+    if (len > 1 && path[0] == '"' && path[len - 1] == '"') {
+        memmove(path, path + 1, len - 1);  // Shift left to remove first quote
+        path[len - 2] = '\0';  // Remove last quote
+    }
+     
+    // Change the directory to the specified path
+    int val = chdir(path);
+    if (val != 0) {
+        // Print error message if `chdir` fails
+        printf("Error %s:", strerror(errno)); 
+    } 
+
+    // Free allocated memory
+    free(path); 
+}
+
+void cp(char **arguments) 
+{
+    // Check if source or destination is missing
+    if (!arguments[1] || !arguments[2]) {
+        fprintf(stderr, "cp: missing source or destination\n");
+        return;
+    }
+
+    // Open source file in binary read mode
+    FILE *src = fopen(arguments[1], "rb");
+    if (!src) {
+        fprintf(stderr, "cp: cannot open file %s\n", arguments[1]);
+        return;
+    }
+
+    // Open destination file in binary write mode (overwrite if exists, create if not)
+    FILE *dst = fopen(arguments[2], "wb");
+    if (!dst) {
+        fclose(src);
+        fprintf(stderr, "cp: cannot create/open file %s\n", arguments[2]);
+        return;
+    }
+
+    // Buffer for reading and copying data
+    char buf[4096];
+    size_t n;
+    
+    // Read from source and write to destination until done
+    while ((n = fread(buf, 1, sizeof(buf), src)) > 0) {
+        fwrite(buf, 1, n, dst);
+    }
+
+    // Close files to free resources and save data
+    fclose(src);
+    fclose(dst);
+}
+
+
 
 
 
@@ -190,37 +273,6 @@ void echo(char **arguments)
         printf("%s ", *arguments);
 
     puts("");
-}
-void cd(char **arguments)
-{
-
-    if (strncmp(arguments[1], "\"", 1) != 0 && arguments[2] != NULL)
-        printf("-myShell: cd: too many arguments\n");
-
-    else if (chdir(arguments[1]) != 0)
-        printf("-myShell: cd: %s: No such file or directory\n", arguments[1]);
-}
-void cp(char **arguments)
-{
-    char ch;
-    FILE *src, *des;
-    if ((src = fopen(arguments[1], "r")) == NULL)
-    {
-        puts("error");
-        return;
-    }
-
-    if ((des = fopen(arguments[2], "w")) == NULL)
-    {
-        puts("error");
-        fclose(src);
-        return;
-    }
-    while ((ch = fgetc(src)) != EOF)
-        fputc(ch, des);
-
-    fclose(src);
-    fclose(des);
 }
 void get_dir()
 {
