@@ -3,96 +3,141 @@
 
 int main(int argc, char const *argv[])
 {
-
     welcome();
+
     while (1)
     {
-        int isPipe = 2;
-        int isEchoWrith = 0;
-        int isEchoPpend = 0;
-
         getLocation();
 
         char *input = getInputFromUser();
-        puts(input);
-        
-        if (strncmp(input, "exit",4) == 0)
-        {
-            puts("Exit");
-            logout(input);
+        if (!input) {
+            continue;
         }
 
         char **arguments = splitArguments(input);
+        if (!arguments) {
+            free(input);
+            continue;
+        }
 
-        if (strcmp(input, "cd") == 0)
-        {
+        if (!arguments[0]) {
+            free(arguments);
+            free(input);
+            continue;
+        }
+
+        if (isExitCommand(arguments[0])) {
+            logout(input); 
+        }
+
+        if (strcmp(arguments[0], "cd") == 0) {
             cd(arguments);
         }
-        else if (strncmp(input, "echo",4) == 0)
-        {
-            if (isEchoWrith)
-                echowrite(arguments);
-            else if (isEchoPpend)
-                echoppend(arguments);
-            else
-                echo(arguments);
+        else if (strcmp(arguments[0], "echo") == 0) {
+            echo(arguments);
         }
-        else if (strcmp(input, "cp") == 0)
-        {
+        else if (strcmp(arguments[0], "cp") == 0) {
             cp(arguments);
         }
-        else if (strcmp(input, "delete") == 0)
-        {
+        else if (strcmp(arguments[0], "delete") == 0) {
             delete(arguments);
         }
-        else if (strcmp(input, "dir") == 0)
-        {
+        else if (strcmp(arguments[0], "dir") == 0) {
             get_dir();
         }
-        else if (isPipe)
-        {
-            mypipe(arguments, arguments + isPipe + 1);
+        else if (strcmp(arguments[0], "mv") == 0) {
+            // הפקודה שתפעיל את פונקציית move
+            move(arguments);
         }
-        else
-        {
-            systemCall(arguments);
-            wait(NULL);
+        else if (strcmp(arguments[0], "read") == 0) {
+            _read(arguments);
+        }
+        else if (strcmp(arguments[0], "wc") == 0) {
+            wordCount(arguments);
+        }
+        else {
+            // נבדוק האם יש pipe '|'
+            int pipeIndex = -1;
+            for (int i = 0; arguments[i]; i++) {
+                if (strcmp(arguments[i], "|") == 0) {
+                    pipeIndex = i;
+                    break;
+                }
+            }
+            if (pipeIndex != -1) {
+                // מפרידים את arguments לשני חלקים argv1, argv2
+                char **argv1 = malloc(sizeof(char*) * (pipeIndex + 1));
+                if (!argv1) {
+                    free(arguments);
+                    free(input);
+                    continue;
+                }
+                for (int k = 0; k < pipeIndex; k++) {
+                    argv1[k] = arguments[k];
+                }
+                argv1[pipeIndex] = NULL;
+
+                // בניית argv2
+                int len2 = 0;
+                while (arguments[pipeIndex + 1 + len2]) {
+                    len2++;
+                }
+                char **argv2 = malloc(sizeof(char*) * (len2 + 1));
+                if (!argv2) {
+                    free(argv1);
+                    free(arguments);
+                    free(input);
+                    continue;
+                }
+                for (int m = 0; m < len2; m++) {
+                    argv2[m] = arguments[pipeIndex + 1 + m];
+                }
+                argv2[len2] = NULL;
+
+                mypipe(argv1, argv2);
+
+                free(argv1);
+                free(argv2);
+            }
+            else {
+                systemCall(arguments);
+                wait(NULL);
+            }
         }
 
+        free(arguments);
         free(input);
     }
 
     return 0;
 }
+
 void welcome()
 {
-    char *logo[] = {"                     aRTI//BARK             ____\n",
-                    "             simpleSH//////////Shl         |B//S|", "    |\n",
-                    "          SH//////YS           shell//Sh   |A@@I|", "    | Welcome to simple shell\n",
-                    " Sim aSystemSH//Sh              sys//B     |R$$M|", "    | Version 1.0\n",
-                    " ArtABBBaraKk///Sh               sM//E     |A^^P|", "    |\n",
-                    "         pCCCCY//h          eSS@@ y//E     |K**L|", "    | https://github.com/BSharabi\n",
-                    "         SPPPP///a          pP///AC//E     |&&&E|", "    |\n",
-                    "              A//A            smP////S     |A**S|", "    | Have fun!\n",
-                    "              p///Ac            sE///a     |R##H|", "    |\n",
-                    "              P////YCpc           L//L     |T!!E|", "    | Wanna support simple shell?\n",
-                    "       scccccp///pSP///p          p//l     |I%%L|", "    |\n",
-                    "      sY/////////y  caa           S//h     |U--L|", "    |\n",
-                    "       shsSellH//Ya              pY/Sh     |MIGT|", "    |\n",
-                    "        sH/ShS////YCc          aC//Yp      |____|", "    |\n",
-                    "         Si  shlll//SHsimpleSH//LSs\n",
-                    "                  shell//////IPSHs\n",
-                    "                       artium\n", '\0'};
-    int i = 0;
+    const char *logo[] = {
+        "                         | ___  o|     |\n",
+        "                         |[_-_]_ |     |\n",
+        "      ______________     |[_____]|     |     Kfir Moscovich\n",
+        "     |.------------.|    |[====o]|     | \n",
+        "     ||            ||    |[_.--_]|     |     ./myShell\n",
+        "     ||            ||    |[_____]|     |\n",
+        "     ||            ||    |      :|     |\n",
+        "     ||            ||    |      :|     |\n",
+        "     ||____________||    |      :|     |\n",
+        " .==.|\"\"  ......    |.==.|      :|     |\n",
+        " |::| '-.________.-' |::||      :|     |\n",
+        " |''|  (__________)-.|''||______:|     |\n",
+        " `\"\"`_.............._\\\"\"`______        |\n",
+        "    /:::::::::::'':::\\`;'-.-.  `\\      |\n",
+        "   /::=========.:.-::\"\\ \\ \\--\\   \\     |\n",
+        "   \\`\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"`/  \\ \\__)   \\    |\n",
+        "___ `\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"`    '========'   |    Welcome. have fun!\n",
+        NULL
+    };
+    
 
-    do
-    {
-        printf("%s", logo[i++]);
-        // if (i % 2 != 0 || i > 26)
-        //     green();
-        // else
-        //     blue();
-    } while (logo[i]);
-    // reset();
-    puts("\n");
+    for (int i = 0; logo[i] != NULL; i++) {
+        printf("%s", logo[i]);
+    }
+    puts("");
 }
