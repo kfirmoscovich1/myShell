@@ -1,42 +1,103 @@
 #include "myFunctionsShell.h"
+#include <stdio.h>  
+#include <stdlib.h> 
+#include <string.h> 
+#include <unistd.h>   
+#include <sys/types.h> 
+#include <sys/wait.h> 
+#include <pwd.h>  
+#include <dirent.h>  
+#include <fcntl.h>  
+#include <sys/stat.h> 
+
 
 char *getInputFromUser()
 {
-
-    char ch;
+    char *input = malloc(1);
+    if (!input) return NULL;
     int len = 0;
-    char *input = (char *)malloc(sizeof(char) * (len + 1));
-    *input = '\0';
-    while ((ch = getchar()) != '\n')
-    {
-        *(input + len) = ch;
-        input = (char *)realloc(input, (++len + 1));
-    }
-    *(input + len) = '\0';
+    char ch;
 
+    while ((ch = getchar()) != '\n') 
+    {
+        char *tmp = realloc(input, len + 2);
+        if (!tmp) {
+            free(input);
+            return NULL;
+        }
+        input = tmp;
+        input[len++] = ch;
+    }
+    input[len] = '\0';
     return input;
 }
 
-char **splitArguments(char *input)
+char **splitArguments(char *input) 
 {
+    // Return NULL if input is empty
+    if (!input) 
+    {
+        return NULL;
+    }
 
-    char **arguments = (char **)malloc(sizeof(char *) * 7);
-    arguments[0] = input;
-    arguments[1] = input + 4;
-    arguments[2] = input + 7;
+    // Define delimiters (spaces, tabs, newlines)
+    const char *delimiters = " \t\n";
+    char **args = NULL;
+    int count = 0;
 
-    return NULL;
+    // Tokenize the input string based on delimiters
+    char *token = strtok(input, delimiters);
+    while (token) {
+        // Resize memory to store the new token
+        char **temp = realloc(args, sizeof(char*) * (count + 2));
+        if (!temp) 
+        {
+            free(args);
+            return NULL;
+        }
+        args = temp;
+        args[count] = token;
+        count++;
+        token = strtok(NULL, delimiters);
+    }
+
+    // Null-terminate the arguments array
+    if (args) 
+    {
+        args[count] = NULL;
+    }
+
+    return args;
 }
 
-void getLocation()
+void getLocation() 
 {
-    char location[256];
-    if (getcwd(location, sizeof(location)) == NULL)
-    {
-        puts("Error");
-        return;
+    // Get the username
+    struct passwd *pw = getpwuid(getuid());
+    char *username = pw ? pw->pw_name : "unknown_user";
+
+    // Get the hostname
+    char hostname[128];
+    if (gethostname(hostname, sizeof(hostname)) != 0) {
+        strcpy(hostname, "unknown_host");
     }
-    printf("%s", location);
+
+    // Get the current working directory
+    char cwd[256];
+    if (!getcwd(cwd, sizeof(cwd))) {
+        strcpy(cwd, "unknown_path");
+    }
+
+    // Print the formatted location (with colors)
+    printf("\033[1;32m%s\033[0m", username); // Green username
+    printf("@");
+    printf("\033[1;32m%s\033[0m", hostname); // Green hostname
+    printf(":");
+    printf("\033[34m%s\033[0m", cwd); // Blue current directory
+    printf("$ ");
+    
+    // Ensure output is displayed immediately
+    fflush(stdout);
 }
 
 void logout(char *input)

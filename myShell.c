@@ -46,7 +46,6 @@ int main(int argc, char const *argv[])
             get_dir();
         }
         else if (strcmp(arguments[0], "mv") == 0) {
-            // הפקודה שתפעיל את פונקציית move
             move(arguments);
         }
         else if (strcmp(arguments[0], "read") == 0) {
@@ -56,7 +55,6 @@ int main(int argc, char const *argv[])
             wordCount(arguments);
         }
         else {
-            // נבדוק האם יש pipe '|'
             int pipeIndex = -1;
             for (int i = 0; arguments[i]; i++) {
                 if (strcmp(arguments[i], "|") == 0) {
@@ -65,7 +63,6 @@ int main(int argc, char const *argv[])
                 }
             }
             if (pipeIndex != -1) {
-                // מפרידים את arguments לשני חלקים argv1, argv2
                 char **argv1 = malloc(sizeof(char*) * (pipeIndex + 1));
                 if (!argv1) {
                     free(arguments);
@@ -77,7 +74,6 @@ int main(int argc, char const *argv[])
                 }
                 argv1[pipeIndex] = NULL;
 
-                // בניית argv2
                 int len2 = 0;
                 while (arguments[pipeIndex + 1 + len2]) {
                     len2++;
