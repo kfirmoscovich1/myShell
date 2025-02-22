@@ -14,66 +14,70 @@
 
 char *getInputFromUser()
 {
-    char *input = malloc(1);
-    if (!input) return NULL;
+    char *input = malloc(1);  // allocate single memory location to input
+    if (!input) return NULL; // check ia allocation works
     int len = 0;
     char ch;
 
-    while ((ch = getchar()) != '\n') 
-    {
-        char *tmp = realloc(input, len + 2);
-        if (!tmp) {
-            free(input);
+    while ((ch = getchar()) != '\n') { // start ti get chars from the user
+        char *tmp = realloc(input, len + 2); // allocate memory to tmp base on input size
+        if (!tmp) { 
+            free(input); // if tmp memory allocation fails, free input and return NULL
             return NULL;
         }
-        input = tmp;
-        input[len++] = ch;
+        input = tmp; // point input to the tmp memory allocation
+        input[len++] = ch; // add the new captured char into the input array of chars and increase the length counter
     }
-    input[len] = '\0';
+    input[len] = '\0'; // after user ended the input, we add the \0 to indicated end of the chars list
     return input;
 }
 
-char **splitArguments(char *input) 
-{
+char **splitArguments(char *str) {
     // Return NULL if input is empty
-    if (!input) 
-    {
+    if (!str) {
         return NULL;
     }
 
-    // Define delimiters (spaces, tabs, newlines)
-    const char *delimiters = " \t\n";
+    
+    const char *delimiters = " \t\n";  // Define delimiters (spaces, tabs or newlines)
     char **args = NULL;
     int count = 0;
 
     // Tokenize the input string based on delimiters
-    char *token = strtok(input, delimiters);
+    char *token = strtok(str, delimiters);
     while (token) {
         // Resize memory to store the new token
         char **temp = realloc(args, sizeof(char*) * (count + 2));
-        if (!temp) 
-        {
+        if (!temp) {
             free(args);
             return NULL;
         }
         args = temp;
-        args[count] = token;
-        count++;
-        token = strtok(NULL, delimiters);
+        args[count++] = token; // put the token into args list
+        token = strtok(NULL, delimiters); // gets the next token.
     }
 
     // Null-terminate the arguments array
-    if (args) 
-    {
+    if (args) {
         args[count] = NULL;
     }
 
     return args;
 }
 
-void getLocation() 
-{
+
+void getLocation() {
     // Get the username
+    // struct passwd {
+    //     char   *pw_name;   // Username
+    //     char   *pw_passwd; // Encrypted password (not always available)
+    //     uid_t   pw_uid;    // User ID (UID)
+    //     gid_t   pw_gid;    // Group ID (GID)
+    //     char   *pw_gecos;  // Full name or additional user info
+    //     char   *pw_dir;    // Home directory
+    //     char   *pw_shell;  // Default shell (e.g., /bin/bash, /bin/sh)
+    // };
+    
     struct passwd *pw = getpwuid(getuid());
     char *username = pw ? pw->pw_name : "unknown_user";
 
@@ -101,40 +105,25 @@ void getLocation()
     fflush(stdout);
 }
 
-int isExitCommand(const char *input) 
-{
-    // Skip leading spaces
-    while (isspace((unsigned char)*input)) {
-        input++;
-    }
+int isExitCommand(char **args) {
+    // Check only one argument was given
+     int num_of_args = get_arg_num (args) ;
+     if ( (num_of_args ==1) && (strcmp(args[0], "exit")) ==0) {
+         return 0;
+     } 
+ 
+     return 1; 
+     
+ }
 
-    // Define the "exit" command string
-    const char *exitStr = "exit";
-    size_t len = strlen(exitStr);
+ void logout(char *str)
+ {
+     free(str);
+     puts("Exiting shell... Goodbye!");
+     exit(EXIT_SUCCESS);
+ }
 
-    // Check if the input starts with "exit"
-    if (strncmp(input, exitStr, len) != 0) {
-        return 0;
-    }
-
-    // Check if the next character is a space or end of string (valid "exit" command)
-    char c = input[len];
-    if (c == '\0' || isspace((unsigned char)c)) {
-        return 1;
-    }
-
-    return 0;
-}
-
-void logout(char *input)
-{
-    free(input);
-    puts("Exiting shell... Goodbye!");
-    exit(EXIT_SUCCESS);
-}
-
-void cd(char **args) 
-{
+ void cd(char **args) {
     int num = 0;
     
     // Check if no directory is provided
@@ -177,26 +166,25 @@ void cd(char **args)
     free(path); 
 }
 
-void cp(char **arguments) 
-{
+void cp(char **args) {
     // Check if source or destination is missing
-    if (!arguments[1] || !arguments[2]) {
+    if (!args[1] || !args[2]) {
         fprintf(stderr, "cp: missing source or destination\n");
         return;
     }
 
     // Open source file in binary read mode
-    FILE *src = fopen(arguments[1], "rb");
+    FILE *src = fopen(args[1], "rb");
     if (!src) {
-        fprintf(stderr, "cp: cannot open file %s\n", arguments[1]);
+        fprintf(stderr, "cp: cannot open file %s\n", args[1]);
         return;
     }
 
     // Open destination file in binary write mode (overwrite if exists, create if not)
-    FILE *dst = fopen(arguments[2], "wb");
+    FILE *dst = fopen(args[2], "wb");
     if (!dst) {
         fclose(src);
-        fprintf(stderr, "cp: cannot create/open file %s\n", arguments[2]);
+        fprintf(stderr, "cp: cannot create/open file %s\n", args[2]);
         return;
     }
 
@@ -213,6 +201,51 @@ void cp(char **arguments)
     fclose(src);
     fclose(dst);
 }
+
+void get_dir() {
+    // Open the current directory
+    DIR *dir = opendir("./");
+    if (!dir) {
+        // Print error if directory cannot be opened
+        perror("opendir");
+        return;
+    }
+
+    // Read and print each entry in the directory
+    struct dirent *ent;
+    while ((ent = readdir(dir))) {
+        printf("%s ", ent->d_name);
+    }
+
+    puts("");
+
+    // Close the directory
+    closedir(dir);
+}
+
+void delete(char **str) {
+    // Check if a file path is provided
+    if (!str[1]) {
+        printf("delete: missing file name\n");
+        return;
+    }
+
+    // Handle paths enclosed in double quotes
+    char *path = str[1];
+    size_t len = strlen(path);
+    if (len > 1 && path[0] == '"' && path[len - 1] == '"') {
+        path[len - 1] = '\0';  // Remove trailing quote
+        path++; // Move pointer to exclude the first quote
+    }
+
+    // unlink(path) removes the file. Returns 0 on success, -1 on failure. If in use, deletion occurs after all processes close it.
+    if (unlink(path) != 0) {
+        printf("delete: cannot remove '%s'\n", path);
+    } else {
+        printf("delete: file '%s' successfully deleted\n", path);
+    }
+}
+
 
 
 
@@ -274,21 +307,4 @@ void echo(char **arguments)
 
     puts("");
 }
-void get_dir()
-{
-    DIR *dir;
-    struct dirent *ent;
-    if ((dir = opendir("./")) == NULL)
-    {
-        perror("");
-        return;
-    }
-    while ((ent = readdir(dir)) != NULL)
-        printf("%s ", ent->d_name);
-    puts("");
-}
-void delete(char **arguments)
-{
-    if (unlink(arguments[1]) != 0)
-        printf("-myShell: delete: %s: No such file or directory\n", arguments[1]);
-}
+

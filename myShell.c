@@ -26,7 +26,7 @@ int main(int argc, char const *argv[])
             continue;
         }
 
-        if (isExitCommand(arguments[0])) {
+        if (isExitCommand(arguments) == 0) {
             logout(input); 
         }
 
@@ -127,7 +127,7 @@ void welcome()
         "    /:::::::::::'':::\\`;'-.-.  `\\      |\n",
         "   /::=========.:.-::\"\\ \\ \\--\\   \\     |\n",
         "   \\`\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"`/  \\ \\__)   \\    |\n",
-        "___ `\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"`    '========'   |    Welcome. have fun!\n",
+        "___ `\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"`    '========'   |    Welcome! have fun.\n",
         NULL
     };
     
