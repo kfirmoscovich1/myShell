@@ -44,3 +44,4 @@ void echoppend(char **args);
 void echowrite(char **args);
 void _read(char **args);
 void wordCount(char **args);
+int get_arg_num (char **args);

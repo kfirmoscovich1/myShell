@@ -11,6 +11,17 @@
 #include <sys/stat.h> 
 #include <errno.h>
 
+int get_arg_num (char **args)
+{
+    // this function gets the user args and return the number of args found untill NULL is detected
+    int count = 0 ;
+    while (args[count] != NULL) 
+    {
+        
+        count++;  
+    }
+    return count ; 
+}
 
 char *getInputFromUser()
 {
