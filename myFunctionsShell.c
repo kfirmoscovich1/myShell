@@ -79,16 +79,6 @@ char **splitArguments(char *str) {
 
 void getLocation() {
     // Get the username
-    // struct passwd {
-    //     char   *pw_name;   // Username
-    //     char   *pw_passwd; // Encrypted password (not always available)
-    //     uid_t   pw_uid;    // User ID (UID)
-    //     gid_t   pw_gid;    // Group ID (GID)
-    //     char   *pw_gecos;  // Full name or additional user info
-    //     char   *pw_dir;    // Home directory
-    //     char   *pw_shell;  // Default shell (e.g., /bin/bash, /bin/sh)
-    // };
-    
     struct passwd *pw = getpwuid(getuid());
     char *username = pw ? pw->pw_name : "unknown_user";
 
@@ -460,5 +450,66 @@ void _read(char **args)
     fclose(fp);
 }
 
-void wordCount(char **args) {}
+void wordCount(char **args)
+{
+     
+    // Get the number of argumnrt out of argv - using a dedicated function. 
+     int num_of_args = get_arg_num (args) ; 
+     
+     // check single argument 
+     if ( num_of_args == 1 || num_of_args == 2  ) 
+     {
+         printf ("Error - source file is missing - use wc -l or -w <filename> \n") ; 
+         return ;
+     }
+     else if ( num_of_args >3) 
+     {
+        printf ("Error - Too many arguments - use wc -l or -w <filename> \n") ; 
+         return ;
+     }
+     
+      
+     FILE *fp = fopen(args[2], "r");
+     if (!fp) 
+     {
+      printf ("Error - File was not found !!\n");
+      return;
+     }
+     int word_count = 0 ;
+     int line_count = 0 ;
+     char line[1024] ; 
+     while (fgets(line,sizeof(line),fp))
+     {
+        if (strstr(args[1], "-l") != NULL)
+        {
+            line_count++ ; 
+        }
+        else if (strstr(args[1], "-w") != NULL)
+        {
+            int inWord = 0;
+            for (int i = 0; line[i]; i++) 
+            {
+                if (!isspace((unsigned char)line[i]) && !inWord)
+                 {
+                    word_count++;
+                    inWord = 1;
+                 }
+                else if (isspace((unsigned char)line[i])) 
+                {
+                    inWord = 0;
+                } 
+            }
+        }  else  
+        {
+          printf ("Error - need to use -l or -w \n");
+        }
+    
+     }
+     // print the resoults 
+     if (strstr(args[1], "-w")) printf ("%d\n",word_count); 
+     else printf ("%d\n",line_count);  
+ 
+    return ; 
+
+}
 
