@@ -28,17 +28,17 @@ char *getInputFromUser();
  * @warning The caller is responsible for freeing the memory allocated for
  *          the returned array and its elements using free().
  */
-char **splitArguments(char *);
+char **splitArguments(char *str);
 void getLocation();
-int isExitCommand(const char *input);
-void logout(char *input);
-void echo(char **arguments);
-void cd(char **);
-void cp(char **arguments);
+int isExitCommand(char **args);
+void logout(char *str);
+void echo(char **args);
+void cd(char **args);
+void cp(char **args);
 void get_dir();
-void delete(char **arguments);
-void systemCall(char **arguments);
-void mypipe(char **, char **);
+void delete(char **args);
+void systemCall(char **args);
+void mypipe(char **argv1, char **argv2);
 void move(char **args);
 void echoppend(char **args);
 void echowrite(char **args);
