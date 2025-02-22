@@ -246,56 +246,100 @@ void delete(char **str) {
     }
 }
 
-
-
-
-
-
-void systemCall(char **arguments)
-{
-    puts("systemCall");
+void systemCall(char **arguments) {
+    // Create a new fork to verify that the command is not correct.
     pid_t pid = fork();
-    if (pid == -1)
-    {
-        perror("fork err");
+    
+    if (pid == -1) {
+        perror("fork");
         return;
     }
 
-    if (pid == 0)
-    {
-
-        if (execvp(arguments[0], arguments) == -1)
-        {
-            exit(EXIT_FAILURE);
+    if (pid == 0) {
+        if (execvp(arguments[0], arguments) == -1) {
+            perror("Error");
+            exit(EXIT_FAILURE); 
         }
     }
+
 }
-void mypipe(char **argv1, char **argv2)
-{
 
+void mypipe(char **argv1, char **argv2) {
+    // Create two pipes, input and output.
     int fd[2];
+    if (pipe(fd) == -1) {
+        perror("pipe");
+        return;
+    }
 
-    if (fork() == 0)
-    {
-        pipe(fd);
-        if (fork() == 0)
-        {
+    pid_t pid1 = fork();
+    if (pid1 == 0) {
+        close(fd[0]); // close the input pipe, it not required
+        dup2(fd[1], STDOUT_FILENO); // redirect the standard output from the display to FD1, the next command input 
+        close(fd[1]); // close the FD1 as it already used 
+        execvp(argv1[0], argv1); // exeute the first function 
+        perror("execvp argv1");
+        exit(EXIT_FAILURE);
+    }
 
-            close(STDOUT_FILENO);
-            dup2(fd[1], STDOUT_FILENO);
-            close(fd[1]);
-            close(fd[0]);
-            execvp(argv1[0], argv1);
-        }
-
-        close(STDIN_FILENO);
-        dup(fd[0]);
-        close(fd[1]);
+    pid_t pid2 = fork();
+    if (pid2 == 0) {
+        close(fd[1]); 
+        dup2(fd[0], STDIN_FILENO);
         close(fd[0]);
         execvp(argv2[0], argv2);
+        perror("execvp argv2");
+        exit(EXIT_FAILURE);
+    }
+
+    close(fd[0]);
+    close(fd[1]);
+    waitpid(pid1, NULL, 0);
+    waitpid(pid2, NULL, 0);
+}
+
+void move(char **args) {
+    // Check if source and destination are provided
+    if (!args[1] || !args[2]) {
+        printf("mv: missing source or destination\n");
+        return;
+    }
+
+    // Handle paths enclosed in double quotes
+    char *source = args[1];
+    char *destination = args[2];
+
+    size_t len_src = strlen(source);
+    size_t len_dst = strlen(destination);
+
+    if (len_src > 1 && source[0] == '"' && source[len_src - 1] == '"') {
+        source[len_src - 1] = '\0'; // Remove trailing quote
+        source++; // Move pointer to exclude the first quote
+    }
+
+    if (len_dst > 1 && destination[0] == '"' && destination[len_dst - 1] == '"') {
+        destination[len_dst - 1] = '\0'; // Remove trailing quote
+        destination++; // Move pointer to exclude the first quote
+    }
+
+    // Try renaming the file
+    if (rename(source, destination) != 0) {
+        printf("mv: cannot move '%s' to '%s', trying copy & delete...\n", source, destination);
+        
+        // Prepare arguments for cp
+        char *cp_args[] = {"cp", source, destination, NULL};
+        cp(cp_args);
+
+        // Attempt to delete the source file
+        if (unlink(source) != 0) {
+            printf("mv: failed to remove '%s'\n", source);
+        }
     }
 }
-void move(char **args) {}
+
+
+
+
 void echoppend(char **args) {}
 void echowrite(char **args) {}
 void _read(char **args) {}
