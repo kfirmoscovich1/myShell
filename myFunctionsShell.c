@@ -348,18 +348,117 @@ void move(char **args) {
     }
 }
 
-
-
-
-void echoppend(char **args) {}
-void echowrite(char **args) {}
-void _read(char **args) {}
-void wordCount(char **args) {}
-void echo(char **arguments)
+void echo (char **args)
 {
-    while (*(++arguments))
-        printf("%s ", *arguments);
+// Get the number of argumnrt out of argv - using a dedicated function. 
+int num_of_args = get_arg_num (args) ; 
 
-    puts("");
+// checking if only ech arguments was applied 
+ if ( num_of_args == 1 || num_of_args == 2 || num_of_args == 3 ) 
+ {
+     printf ("Error - Missing atrguments- use the format of echo <string> > or >> <file name> \n") ; 
+     return ;
+ }
+
+ if (num_of_args > 4)
+ {
+    printf ("Error - Too many arguments - use the format of echo <string> > or >> <file name> \n") ; 
+     return ;
+ }
+
+ if (strstr(args[2], ">>") != NULL)
+ {
+    //found >>
+    echoppend (args) ;
+    return ;  
+ }
+ else if (strstr(args[2], ">") != NULL)
+ {
+    //found >>
+    echowrite (args) ; 
+    return ; 
+ }
+ else 
+ {
+    printf ("Error - Please use > or >> - use the format of echo <string> > or >> <file name> \n") ; 
+    return ;
+ }
+
 }
+
+void echoppend(char **args)
+{
+    
+     //Check if file exsit , and open for an append. 
+     FILE *fp = fopen(args[3], "a");
+     if (!fp) 
+     {
+      printf ("Error - Was not eable to open the file : %s !!\n", args[3] );
+      return;
+     }
+
+    // write the  string into the file
+    fprintf(fp, "%s\n", args[1]);
+    //close the file 
+    fclose(fp);
+
+    return;
+}
+
+void echowrite(char **args)
+{
+
+     //Check if file exsit , and open for a new file to be written. 
+     FILE *fp = fopen(args[3], "w");
+     if (!fp) 
+     {
+      printf ("Error - Was not eable to open the file : %s !!\n", args[3] );
+      return;
+     }
+
+    // write the  string into the file
+    fprintf(fp, "%s\n", args[1]);
+    //close the file 
+    fclose(fp);
+    return;
+    
+}
+
+void _read(char **args)
+{
+    // Get the number of argumnrt out of argv - using a dedicated function. 
+    int num_of_args = get_arg_num (args) ; 
+    
+    // checking if only read was applied 
+    if ( num_of_args == 1 ) 
+    {
+        printf ("Error - source file is missing \n") ; 
+        return ;
+    }
+    // Checking too many files were given. 
+    if ( num_of_args > 2 ) 
+    {
+        printf ("Error - Read allow only one file to be use \n") ; 
+        return ;
+    }  
+
+    // Got the right number of arguments
+    //Check if file exsit 
+    FILE *fp = fopen(args[1], "r");
+    if (!fp) 
+    {
+     printf ("Error - File was not found !!\n");
+     return;
+    }
+
+    char line[1024] ; 
+    while (fgets(line,sizeof(line),fp))
+    {
+        printf ("%s",line) ; 
+    }
+    printf ("\n") ; 
+    fclose(fp);
+}
+
+void wordCount(char **args) {}
 
