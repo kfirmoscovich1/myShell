@@ -1,15 +1,14 @@
 #include "myFunctionsShell.h"
-#include <stdio.h>  
-#include <stdlib.h> 
-#include <string.h> 
-#include <unistd.h>   
-#include <sys/types.h> 
-#include <sys/wait.h> 
-#include <pwd.h>  
-#include <dirent.h>  
-#include <fcntl.h>  
-#include <sys/stat.h> 
+#include <pwd.h>
+#include <sys/types.h>
 #include <errno.h>
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <dirent.h>
+#include <sys/wait.h>
 
 int get_arg_num (char **args)
 {
@@ -18,6 +17,7 @@ int get_arg_num (char **args)
     while (args[count] != NULL) 
     {
         
+        // printf ("counter = %d --> %s\n",count, args[count]) ;
         count++;  
     }
     return count ; 
@@ -76,9 +76,9 @@ char **splitArguments(char *str) {
     return args;
 }
 
-
 void getLocation() {
-    // Get the username
+   
+    
     struct passwd *pw = getpwuid(getuid());
     char *username = pw ? pw->pw_name : "unknown_user";
 
@@ -107,24 +107,24 @@ void getLocation() {
 }
 
 int isExitCommand(char **args) {
-    // Check only one argument was given
-     int num_of_args = get_arg_num (args) ;
-     if ( (num_of_args ==1) && (strcmp(args[0], "exit")) ==0) {
-         return 0;
-     } 
- 
-     return 1; 
-     
- }
+   // Check only one argument was given
+    int num_of_args = get_arg_num (args) ;
+    if ( (num_of_args ==1) && (strcmp(args[0], "exit")) ==0) {
+        return 0;
+    } 
 
- void logout(char *str)
- {
-     free(str);
-     puts("Exiting shell... Goodbye!");
-     exit(EXIT_SUCCESS);
- }
+    return 1; 
+    
+}
 
- void cd(char **args) {
+void logout(char *str)
+{
+    free(str);
+    puts("Exiting shell... Goodbye!");
+    exit(EXIT_SUCCESS);
+}
+
+void cd(char **args) {
     int num = 0;
     
     // Check if no directory is provided
@@ -373,7 +373,6 @@ int num_of_args = get_arg_num (args) ;
     printf ("Error - Please use > or >> - use the format of echo <string> > or >> <file name> \n") ; 
     return ;
  }
-
 }
 
 void echoppend(char **args)
@@ -418,6 +417,7 @@ void _read(char **args)
 {
     // Get the number of argumnrt out of argv - using a dedicated function. 
     int num_of_args = get_arg_num (args) ; 
+    // printf("%d\n",num_of_args) ; 
     
     // checking if only read was applied 
     if ( num_of_args == 1 ) 
@@ -455,6 +455,7 @@ void wordCount(char **args)
      
     // Get the number of argumnrt out of argv - using a dedicated function. 
      int num_of_args = get_arg_num (args) ; 
+    //  printf("%d\n",num_of_args) ; 
      
      // check single argument 
      if ( num_of_args == 1 || num_of_args == 2  ) 
