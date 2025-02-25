@@ -58,6 +58,3 @@ exit
 
 ## Author
 Kfir Moscovich
-
-## License
-This project is open-source and can be modified and distributed under the MIT License.
