@@ -5,6 +5,10 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <sys/wait.h>
+#include <pwd.h>
+#include <sys/types.h>
+#include <errno.h>
+
 #define SIZE_BUFF 256
 
 /**
@@ -26,36 +30,36 @@ char *getInputFromUser();
  * array of strings to store the tokens. The caller is responsible for freeing
  * the memory allocated for the array and its elements when it's no longer needed.
  *
- * @param input A pointer to the string to be split.
+ * @param str A pointer to the string to be split.
  *
  * @return A dynamically allocated array of strings (char**) containing the tokens.
- *         The last element of the array is NULL. Returns NULL if input is NULL
+ *         The last element of the array is NULL. Returns NULL if str is NULL
  *         or if memory allocation fails.
  *
  * @note The input string will be modified (tokenized) by this function.
- *       Make sure to use a copy of the original string if preservation
- *       of the original string is required.
+ *       If preservation of the original string is required, make a copy before passing it.
  *
  * @warning The caller is responsible for freeing the memory allocated for
  *          the returned array and its elements using free().
  */
-char **splitArguments(char *);
+char **splitArguments(char *str);
 
 /**
  * @brief Displays the current user@hostname:directory$ prompt in the terminal.
  *
  * Retrieves the username, hostname, and current working directory, then prints
  * them in a colored/bold format to resemble a standard shell prompt.
+ *
+ * @return void
  */
 void getLocation();
 
 /**
- * @brief Checks if the given input string corresponds to an "exit" command.
+ * @brief Checks if the given input corresponds to an "exit" command.
  *
- * This function ignores leading whitespace, then checks if the string starts
- * with "exit" followed by end-of-string or whitespace.
+ * This function checks if the first argument in the array is "exit".
  *
- * @param input The input string to check.
+ * @param args The array of argument tokens.
  * @return 1 if the string is an exit command, 0 otherwise.
  */
 int isExitCommand(char **args);
@@ -65,7 +69,8 @@ int isExitCommand(char **args);
  *
  * Frees the input buffer before calling exit(EXIT_SUCCESS).
  *
- * @param input The user input buffer to be freed.
+ * @param str The user input buffer to be freed.
+ * @return void
  */
 void logout(char *str);
 
@@ -74,17 +79,17 @@ void logout(char *str);
  *
  * Implements basic echo functionality: prints all tokens after "echo".
  *
- * @param arguments The array of argument tokens (e.g. ["echo", "Hello", "World", NULL]).
+ * @param args The array of argument tokens.
  */
 void echo(char **args);
 
 /**
  * @brief Changes the current working directory of the shell.
  *
- * If arguments[1] starts with a quote, the function may gather tokens until the
- * closing quote (implementation-dependent). Otherwise, calls chdir with arguments[1].
+ * If args[1] starts with a quote, the function may gather tokens until the
+ * closing quote (implementation-dependent). Otherwise, calls chdir with args[1].
  *
- * @param args The array of argument tokens (e.g. ["cd", "/path/to/dir", NULL]).
+ * @param args The array of argument tokens.
  */
 void cd(char **args);
 
@@ -94,7 +99,7 @@ void cd(char **args);
  * Requires two arguments: source file path and destination file path.
  * Opens the source file in "rb" mode and the destination in "wb" mode, then copies.
  *
- * @param arguments The array of argument tokens (e.g. ["cp", "src.txt", "dst.txt", NULL]).
+ * @param args The array of argument tokens.
  */
 void cp(char **args);
 
@@ -102,6 +107,8 @@ void cp(char **args);
  * @brief Lists the contents of the current directory.
  *
  * Uses opendir() and readdir() to read filenames, printing them to stdout.
+ *
+ * @return void
  */
 void get_dir();
 
@@ -110,7 +117,7 @@ void get_dir();
  *
  * Expects at least one argument specifying the file path to delete.
  *
- * @param arguments The array of argument tokens (e.g. ["delete", "file.txt", NULL]).
+ * @param args The array of argument tokens.
  */
 void delete(char **args);
 
@@ -119,7 +126,7 @@ void delete(char **args);
  *
  * The parent process will wait for the child to finish.
  *
- * @param arguments The array of argument tokens, e.g. ["ls", "-l", NULL].
+ * @param args The array of argument tokens.
  */
 void systemCall(char **args);
 
@@ -139,7 +146,7 @@ void mypipe(char **argv1, char **argv2);
  * Implementation typically calls rename(). If rename fails due to cross-filesystem,
  * one might copy then delete.
  *
- * @param args The array of argument tokens (e.g. ["mv", "old.txt", "new.txt", NULL]).
+ * @param args The array of argument tokens.
  */
 void move(char **args);
 
@@ -149,7 +156,7 @@ void move(char **args);
  * Finds ">>" in the arguments, gathers text before it, and appends the text
  * to the file specified after ">>".
  *
- * @param args The array of argument tokens (e.g. ["echo", "Hello", ">>", "file.txt", NULL]).
+ * @param args The array of argument tokens.
  */
 void echoppend(char **args);
 
@@ -159,7 +166,7 @@ void echoppend(char **args);
  * Finds ">" in the arguments, gathers text before it, and writes the text
  * to the file (overwriting existing contents).
  *
- * @param args The array of argument tokens (e.g. ["echo", "Hello", ">", "file.txt", NULL]).
+ * @param args The array of argument tokens.
  */
 void echowrite(char **args);
 
@@ -168,19 +175,34 @@ void echowrite(char **args);
  *
  * If the file does not exist or cannot be opened, nothing is printed.
  *
- * @param args The array of argument tokens (e.g. ["read", "file.txt", NULL]).
+ * @param args The array of argument tokens.
  */
 void _read(char **args);
 
 /**
  * @brief Counts lines or words in a file, implementing wc -l or wc -w.
  *
- * - If arguments[1] == "-l", prints the number of lines in the file.
- * - If arguments[1] == "-w", prints the number of words in the file.
+ * - If args[1] == "-l", prints the number of lines in the file.
+ * - If args[1] == "-w", prints the number of words in the file.
  * If the file does not exist or cannot be opened, no output is produced.
  *
- * @param args The array of argument tokens (e.g. ["wc", "-l", "file.txt", NULL]).
+ * @param args The array of argument tokens.
  */
 void wordCount(char **args);
 
-int get_arg_num (char **args);
+/**
+ * @brief Counts the number of arguments in an array of strings.
+ *
+ * This function iterates over the provided argument array and counts
+ * the number of elements until it encounters a NULL terminator.
+ *
+ * @param args The array of argument tokens, typically from a command-line input.
+ *             The last element of the array should be NULL.
+ *
+ * @return The number of arguments in the array (excluding the NULL terminator).
+ *
+ * @note The function does not modify the input array.
+ *
+ * @warning If the input array is NULL, behavior is undefined.
+ */
+int get_arg_num(char **args);
