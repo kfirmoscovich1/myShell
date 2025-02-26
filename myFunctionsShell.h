@@ -119,7 +119,7 @@ void get_dir();
  *
  * @param args The array of argument tokens.
  */
-void delete(char **args);
+void delete(char **str);
 
 /**
  * @brief Executes a command (external program) by creating a child process and calling execvp.
