@@ -206,3 +206,5 @@ void wordCount(char **args);
  * @warning If the input array is NULL, behavior is undefined.
  */
 int get_arg_num(char **args);
+
+char *replace_space_or_diez_btween_quate (char *str);

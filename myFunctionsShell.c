@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <sys/wait.h>
+#include <stdbool.h>
 
 int get_arg_num (char **args)
 {
@@ -17,10 +18,42 @@ int get_arg_num (char **args)
     while (args[count] != NULL) 
     {
         
-        // printf ("counter = %d --> %s\n",count, args[count]) ;
         count++;  
     }
     return count ; 
+}
+
+char *replace_space_or_diez_btween_quate (char *str){
+    if (!str) return NULL;  // Handle NULL input
+
+    int len = strlen(str);
+    char *local_str = malloc(len + 1);  // Allocate memory for new string
+    if (!local_str) return NULL;
+
+    bool in_quote = false;
+    
+    for (int i = 0; i < len; i++) 
+    {
+        if (str[i] == '"') 
+        {
+            in_quote = !in_quote;  // Toggle quote flag
+            local_str[i] = str[i]; // Keep quotes in the result
+        } 
+        else if (in_quote && str[i] == ' ') 
+        {
+            local_str[i] = '#';  // Replace space with #
+        } 
+        else if  (in_quote && str[i] == '#') 
+        {
+            local_str[i] = 32 ;// Replace space with spce
+        } else 
+        {
+            local_str[i] = str[i]; // Copy character as is
+        }
+    }
+    
+    local_str[len] = '\0'; // Null-terminate string
+    return local_str;
 }
 
 char *getInputFromUser()
@@ -53,6 +86,9 @@ char **splitArguments(char *str) {
     const char *delimiters = " \t\n";  // Define delimiters (spaces, tabs or newlines)
     char **args = NULL;
     int count = 0;
+    
+    // Replace the space inside a quote to ensure the data in the tokens 
+    str = replace_space_or_diez_btween_quate (str) ; 
 
     // Tokenize the input string based on delimiters
     char *token = strtok(str, delimiters);
@@ -72,6 +108,19 @@ char **splitArguments(char *str) {
     if (args) {
         args[count] = NULL;
     }
+    
+    for (int i = 0; i< count ; i++)
+    {
+        args[i] = replace_space_or_diez_btween_quate (args[i]) ; 
+
+         // Remove surrounding quotes if they exist
+        int len = strlen(args[i]);
+        if (len > 1 && args[i][0] == '"' && args[i][len - 1] == '"') {
+            memmove(args[i], args[i] + 1, len - 1);  // Shift left to remove first quote
+            args[i][len - 2] = '\0';  // Remove last quote
+        }
+    }
+
 
     return args;
 }
@@ -147,13 +196,6 @@ void cd(char **args) {
             strcat(path, args[num]); 
         } 
         num++; 
-    }
-
-    // Remove surrounding quotes if they exist
-    int len = strlen(path);
-    if (len > 1 && path[0] == '"' && path[len - 1] == '"') {
-        memmove(path, path + 1, len - 1);  // Shift left to remove first quote
-        path[len - 2] = '\0';  // Remove last quote
     }
      
     // Change the directory to the specified path
@@ -231,13 +273,7 @@ void delete(char **str) {
         return;
     }
 
-    // Handle paths enclosed in double quotes
     char *path = str[1];
-    size_t len = strlen(path);
-    if (len > 1 && path[0] == '"' && path[len - 1] == '"') {
-        path[len - 1] = '\0';  // Remove trailing quote
-        path++; // Move pointer to exclude the first quote
-    }
 
     // unlink(path) removes the file. Returns 0 on success, -1 on failure. If in use, deletion occurs after all processes close it.
     if (unlink(path) != 0) {
@@ -312,7 +348,7 @@ void move(char **args) {
 
     size_t len_src = strlen(source);
     size_t len_dst = strlen(destination);
-
+    
     if (len_src > 1 && source[0] == '"' && source[len_src - 1] == '"') {
         source[len_src - 1] = '\0'; // Remove trailing quote
         source++; // Move pointer to exclude the first quote
@@ -321,6 +357,23 @@ void move(char **args) {
     if (len_dst > 1 && destination[0] == '"' && destination[len_dst - 1] == '"') {
         destination[len_dst - 1] = '\0'; // Remove trailing quote
         destination++; // Move pointer to exclude the first quote
+    }
+
+   char full_destination[1024];
+    if (destination[len_dst - 1] == '/') {
+        // Extract filename from source (manually, without basename)
+        char *filename = source;
+        for (size_t i = len_src - 1; i > 0; i--) {
+            if (source[i] == '/') {
+                filename = &source[i + 1]; // Get pointer to the filename
+                break;
+            }
+        }
+
+        // Concatenate destination + filename
+        strcpy(full_destination, destination);
+        strcat(full_destination, filename);
+        destination = full_destination; // Update destination path
     }
 
     // Try renaming the file
@@ -355,6 +408,7 @@ int num_of_args = get_arg_num (args) ;
     printf ("Error - Too many arguments - use the format of echo <string> > or >> <file name> \n") ; 
      return ;
  }
+
 
  if (strstr(args[2], ">>") != NULL)
  {
@@ -413,40 +467,35 @@ void echowrite(char **args)
     
 }
 
-void _read(char **args)
-{
-    // Get the number of argumnrt out of argv - using a dedicated function. 
-    int num_of_args = get_arg_num (args) ; 
-    // printf("%d\n",num_of_args) ; 
-    
-    // checking if only read was applied 
-    if ( num_of_args == 1 ) 
-    {
-        printf ("Error - source file is missing \n") ; 
-        return ;
+void _read(char **args) {
+    // Get the number of arguments
+    int num_of_args = get_arg_num(args);
+
+    // Checking if only "readFile" was applied
+    if (num_of_args == 1) {
+        printf("Error - source file is missing\n");
+        return;
     }
-    // Checking too many files were given. 
-    if ( num_of_args > 2 ) 
-    {
-        printf ("Error - Read allow only one file to be use \n") ; 
-        return ;
+    
+    // Checking if too many arguments were given
+    if (num_of_args > 2) {
+        printf("Error - Read allows only one file to be used\n");
+        return;
     }  
 
-    // Got the right number of arguments
-    //Check if file exsit 
+    // Check if file exists 
     FILE *fp = fopen(args[1], "r");
-    if (!fp) 
-    {
-     printf ("Error - File was not found !!\n");
-     return;
+    if (!fp) {
+        printf("Error - File was not found!\n");
+        return;
     }
 
-    char line[1024] ; 
-    while (fgets(line,sizeof(line),fp))
-    {
-        printf ("%s",line) ; 
+    char line[1024]; 
+    while (fgets(line, sizeof(line), fp)) {
+        printf("%s", line);
     }
-    printf ("\n") ; 
+    
+    printf("\n");
     fclose(fp);
 }
 
